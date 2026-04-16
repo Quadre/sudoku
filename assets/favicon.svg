@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#f3e1cc"/>
+  <rect x="8" y="8" width="48" height="48" rx="10" fill="#fffaf3" stroke="#4a3323" stroke-width="4"/>
+  <path d="M24 8v48M40 8v48M8 24h48M8 40h48" stroke="#4a3323" stroke-width="3" opacity="0.85"/>
+  <text x="20" y="22" font-size="12" font-family="Georgia, serif" fill="#b34f2e">1</text>
+  <text x="43" y="22" font-size="12" font-family="Georgia, serif" fill="#b34f2e">4</text>
+  <text x="30" y="38" font-size="12" font-family="Georgia, serif" fill="#2f6f38">2</text>
+  <text x="18" y="53" font-size="12" font-family="Georgia, serif" fill="#2f6f38">5</text>
+  <text x="43" y="53" font-size="12" font-family="Georgia, serif" fill="#2f6f38">6</text>
+</svg>

@@ -1,0 +1,11 @@
+.playwright-mcp/
+.venv/
+.vscode/
+CONTEXT.md
+__pycache__/
+*.py[cod]
+.env
+.env.*
+*.log
+Thumbs.db
+.DS_Store
