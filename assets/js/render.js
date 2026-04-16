@@ -70,14 +70,14 @@ function renderWorkspace(state) {
             ${renderStatusContent(state, designStatus, regionStatus, conflicts, solved)}
           </section>
           <div class="board-wrap">
-            <div class="board" style="${getBoardStyle(state)}">${renderBoard(state, values, conflicts, candidateMap)}</div>
+            <div class="board" data-size="${state.size}" style="${getBoardStyle(state)}">${renderBoard(state, values, conflicts, candidateMap)}</div>
           </div>
           ${mobileBoardCardNumpad}
           ${renderBoardToolbar(state)}
         `
     : `
           <div class="board-wrap">
-            <div class="board" style="${getBoardStyle(state)}">${renderBoard(state, values, conflicts, candidateMap)}</div>
+            <div class="board" data-size="${state.size}" style="${getBoardStyle(state)}">${renderBoard(state, values, conflicts, candidateMap)}</div>
           </div>
           ${mobileBoardCardNumpad}
           ${renderBoardToolbar(state)}
@@ -212,7 +212,8 @@ function renderCell(state, conflicts, index, value, candidateMap) {
     .filter(Boolean)
     .join(" ");
 
-  let content = selected ? "" : `<span class="cell-label">${region === null ? "?" : regionLabels[region]}</span>`;
+  const hideLabelForQuietCandidates = state.stage === "solve" && !selected && !value && state.analysisOptions.showAllCandidates;
+  let content = selected || value || hideLabelForQuietCandidates ? "" : `<span class="cell-label">${region === null ? "?" : regionLabels[region]}</span>`;
 
   if (state.stage === "solve" && !value && selected) {
     content += renderCandidateGrid(allowed, state.size);
@@ -357,7 +358,7 @@ function renderOptionsPopover(state) {
         </label>
         <label class="setting-toggle">
           <input type="checkbox" data-setting="show-all-candidates" ${state.analysisOptions.showAllCandidates ? "checked" : ""}>
-          <span>Show candidates in all unresolved cells</span>
+          <span>Show all unresolved</span>
         </label>
         <p class="inline-note">Unselected cells stay quiet and informational. The selected cell keeps the richer interactive candidate view.</p>
       </div>
