@@ -193,6 +193,22 @@ button:disabled {
   gap: 16px;
 }
 
+.board-card-design .status-card {
+  order: 3;
+}
+
+.board-card-design .board-wrap {
+  order: 1;
+}
+
+.board-card-design .board-toolbar-wrap {
+  order: 2;
+}
+
+.numpad-boardcard {
+  display: none;
+}
+
 .board-wrap {
   display: grid;
   place-items: center;
@@ -559,8 +575,69 @@ button:disabled {
     padding: 14px;
   }
 
+  .workspace-design {
+    grid-template-columns: 1fr;
+  }
+
   .board-card {
     padding: 12px;
+  }
+
+  .workspace-design .board-card {
+    order: 1;
+  }
+
+  .workspace-design .panel {
+    order: 2;
+  }
+
+  .workspace-design .board-card-design .status-card {
+    order: 1;
+  }
+
+  .workspace-design .board-card-design .board-wrap {
+    order: 2;
+  }
+
+  .workspace-design .board-card-design .board-toolbar-wrap {
+    order: 3;
+  }
+
+  .workspace-design .panel {
+    gap: 14px;
+  }
+
+  .workspace-design .control-numpad {
+    order: 1;
+  }
+
+  .workspace-design .control-actions-final {
+    order: 2;
+  }
+
+  .numpad-panel {
+    display: none;
+  }
+
+  .numpad-boardcard {
+    display: grid;
+    order: 3;
+  }
+
+  .workspace-design .board-card-design .board-toolbar-wrap {
+    order: 4;
+  }
+
+  .workspace-solve .board-card .numpad-boardcard {
+    order: 2;
+  }
+
+  .workspace-solve .board-card .board-toolbar-wrap {
+    order: 3;
+  }
+
+  .workspace-solve .board-card .status-card {
+    order: 4;
   }
 
   .options-popover {

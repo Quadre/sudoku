@@ -1,6 +1,6 @@
 # Cat's Sudoku Studio
 
-A browser-based Sudoku studio for building and solving classic and jigsaw boards from 3x3 through 9x9.
+A browser-based Sudoku studio for building and solving classic and jigsaw boards from 3x3 through 9x9. *Live demo* available at `https://quadre.github.io/sudoku/`.
 
 ## Features
 
@@ -11,15 +11,7 @@ A browser-based Sudoku studio for building and solving classic and jigsaw boards
 - Track moves with undo and redo
 - View candidate hints while solving
 
-## Run Locally
 
-Serve the project root and open the app in a browser:
-
-```bash
-python serve.py
-```
-
-The app is then available at `http://127.0.0.1:8000/` by default.
 
 ## Screenshots
 
@@ -31,9 +23,21 @@ Jigsaw solve view loaded from `samples/jigsaw-6x6-progress.json`:
 
 ![Jigsaw solve screenshot](assets/screenshots/jigsaw-solve.png)
 
+
+## Run Locally
+
+Serve the project root and open the app in a browser:
+
+```bash
+python serve.py
+```
+
+The app is then available at `http://127.0.0.1:8000/` by default.
+
 ## Sample Files
 
 - `samples/classic-6x6-design.json`
 - `samples/classic-6x6-progress.json`
 - `samples/jigsaw-6x6-design.json`
 - `samples/jigsaw-6x6-progress.json`
+

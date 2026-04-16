@@ -62,7 +62,38 @@ function renderWorkspace(state) {
   const regionStatus = state.variant === "jigsaw" ? validateJigsawRegions(state.regions, state.size) : null;
   const solved = isSolved(state);
   const candidateMap = state.stage === "solve" ? getCandidateMap(values, state.regions, state.size, state.analysisOptions) : null;
-  const workspaceClass = ["workspace", state.stage === "solve" ? "workspace-solve" : ""]
+  const selectedCandidates = state.selectedCell === null || !candidateMap ? [] : candidateMap[state.selectedCell];
+  const mobileBoardCardNumpad = renderBoardCardNumpad(state, selectedCandidates);
+  const boardCardContent = state.stage.startsWith("design-")
+    ? `
+          <section class="status-card">
+            ${renderStatusContent(state, designStatus, regionStatus, conflicts, solved)}
+          </section>
+          <div class="board-wrap">
+            <div class="board" style="${getBoardStyle(state)}">${renderBoard(state, values, conflicts, candidateMap)}</div>
+          </div>
+          ${mobileBoardCardNumpad}
+          ${renderBoardToolbar(state)}
+        `
+    : `
+          <div class="board-wrap">
+            <div class="board" style="${getBoardStyle(state)}">${renderBoard(state, values, conflicts, candidateMap)}</div>
+          </div>
+          ${mobileBoardCardNumpad}
+          ${renderBoardToolbar(state)}
+          <section class="status-card">
+            ${renderStatusContent(state, designStatus, regionStatus, conflicts, solved)}
+          </section>
+        `;
+  const workspaceClass = [
+    "workspace",
+    `workspace-${state.stage}`,
+    state.stage === "solve" ? "workspace-solve" : "",
+    state.stage.startsWith("design-") ? "workspace-design" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const boardCardClass = ["board-card", state.stage.startsWith("design-") ? "board-card-design" : ""]
     .filter(Boolean)
     .join(" ");
 
@@ -72,14 +103,8 @@ function renderWorkspace(state) {
         <aside class="panel">
           ${renderControls(state, values, designStatus, regionStatus, solved, candidateMap)}
         </aside>
-        <section class="board-card">
-          <div class="board-wrap">
-            <div class="board" style="${getBoardStyle(state)}">${renderBoard(state, values, conflicts, candidateMap)}</div>
-          </div>
-          ${renderBoardToolbar(state)}
-          <section class="status-card">
-            ${renderStatusContent(state, designStatus, regionStatus, conflicts, solved)}
-          </section>
+        <section class="${boardCardClass}">
+          ${boardCardContent}
         </section>
       </section>
     </main>
@@ -89,9 +114,10 @@ function renderWorkspace(state) {
 function renderControls(state, values, designStatus, regionStatus, solved, candidateMap) {
   const selected = state.selectedCell === null ? null : toRowColumn(state.selectedCell, state.size);
   const regionLabels = getRegionLabels(state.size);
+  const isDesignStage = state.stage === "design-regions" || state.stage === "design-givens";
 
   const meta = `
-    <section class="stack">
+    <section class="stack control-section control-selection">
       <h2>Selection</h2>
       <div class="meta-list">
         <div class="meta-item"><span>Cell</span><strong>${selected ? `${selected.row + 1},${selected.column + 1}` : "-"}</strong></div>
@@ -102,21 +128,16 @@ function renderControls(state, values, designStatus, regionStatus, solved, candi
 
   if (state.stage === "design-regions") {
     return `
-      ${meta}
-      <section class="stack">
+      <section class="stack control-section control-paint">
         <h2>Paint Regions</h2>
         <div class="palette" style="${getControlStyle(state.size)}">${regionLabels.map((label, index) => renderPaletteButton(index, label, state.activeRegion, state.size)).join("")}</div>
         <div class="button-row">
           <button class="secondary" data-action="clear-selected-region">Clear Selected Cell</button>
           <button class="secondary" data-action="clear-all-regions">Clear All Regions</button>
         </div>
+      </section>
+      <section class="stack control-section control-actions-final">
         <button class="primary" data-action="continue-jigsaw" ${regionStatus && !regionStatus.valid ? "disabled" : ""}>Continue To Givens</button>
-      </section>
-      <section class="stack">
-        <h2>Region Check</h2>
-        ${renderRegionSummary(regionStatus, state.size)}
-      </section>
-      <section class="stack">
         <button class="secondary" data-action="trigger-import">Load JSON File</button>
       </section>
     `;
@@ -124,17 +145,16 @@ function renderControls(state, values, designStatus, regionStatus, solved, candi
 
   if (state.stage === "design-givens") {
     return `
-      ${meta}
-      <section class="stack">
-        <h2>Initial Digits</h2>
-        <div class="digits" style="${getControlStyle(state.size)}">${renderDigitButtons("set-digit", state.selectedCell, state.givens, state.stage, state)}</div>
-        <div class="button-row">
-          <button class="secondary" data-action="clear-selected-value">Clear Cell</button>
-          <button class="secondary" data-action="trigger-import">Load JSON File</button>
-        </div>
-      </section>
-      ${state.variant === "jigsaw" ? `<button class="ghost" data-action="edit-regions">Edit Regions</button>` : ""}
-      <section class="stack">
+      ${renderNumpadSection({
+        state,
+        title: "Initial Digits",
+        action: "set-digit",
+        values: state.givens,
+        stage: state.stage,
+        wrapperClass: "numpad-panel",
+      })}
+      <section class="stack control-section control-actions-final">
+        ${state.variant === "jigsaw" ? `<button class="ghost" data-action="edit-regions">Edit Regions</button>` : ""}
         <button class="primary" data-action="export-design" ${designStatus.valid ? "" : "disabled"}>Export Design</button>
         <button class="primary" data-action="start-solving" ${designStatus.valid ? "" : "disabled"}>Switch To Solving</button>
       </section>
@@ -144,18 +164,20 @@ function renderControls(state, values, designStatus, regionStatus, solved, candi
   const selectedCandidates = state.selectedCell === null || !candidateMap ? [] : candidateMap[state.selectedCell];
 
   return `
-    <section class="stack">
-      <h2>Entry Pad</h2>
-      <div class="digits" style="${getControlStyle(state.size)}">${renderDigitButtons("play-digit", state.selectedCell, state.entries, state.stage, state, selectedCandidates)}</div>
-      <div class="button-row">
-        <button class="secondary" data-action="clear-selected-value">Clear Cell</button>
-        <button class="secondary" data-action="trigger-import">Load JSON File</button>
-      </div>
-    </section>
-    <section class="stack">
+    ${isDesignStage ? "" : meta}
+    ${renderNumpadSection({
+      state,
+      title: "Entry Pad",
+      action: "play-digit",
+      values: state.entries,
+      stage: state.stage,
+      selectedCandidates,
+      wrapperClass: "numpad-panel",
+    })}
+    <section class="stack control-section control-actions-final">
       <button class="primary" data-action="export-progress">Export Progress</button>
     </section>
-    <section class="stack">
+    <section class="stack control-section control-progress">
       <h2>Progress</h2>
       <div class="meta-list">
         <div class="meta-item"><span>Filled</span><strong>${values.filter(Boolean).length}/${getCellCount(state.size)}</strong></div>
@@ -190,7 +212,7 @@ function renderCell(state, conflicts, index, value, candidateMap) {
     .filter(Boolean)
     .join(" ");
 
-  let content = `<span class="cell-label">${region === null ? "?" : regionLabels[region]}</span>`;
+  let content = selected ? "" : `<span class="cell-label">${region === null ? "?" : regionLabels[region]}</span>`;
 
   if (state.stage === "solve" && !value && selected) {
     content += renderCandidateGrid(allowed, state.size);
@@ -399,6 +421,46 @@ function renderRegionSummary(regionStatus, size) {
         </div>
       `).join("")}
     </div>
+  `;
+}
+
+function renderBoardCardNumpad(state, selectedCandidates) {
+  if (state.stage === "design-givens") {
+    return renderNumpadSection({
+      state,
+      title: "Initial Digits",
+      action: "set-digit",
+      values: state.givens,
+      stage: state.stage,
+      wrapperClass: "numpad-boardcard",
+    });
+  }
+
+  if (state.stage === "solve") {
+    return renderNumpadSection({
+      state,
+      title: "Entry Pad",
+      action: "play-digit",
+      values: state.entries,
+      stage: state.stage,
+      selectedCandidates,
+      wrapperClass: "numpad-boardcard",
+    });
+  }
+
+  return "";
+}
+
+function renderNumpadSection({ state, title, action, values, stage, selectedCandidates = [], wrapperClass = "" }) {
+  return `
+    <section class="stack control-section control-numpad ${wrapperClass}">
+      <h2>${title}</h2>
+      <div class="digits" style="${getControlStyle(state.size)}">${renderDigitButtons(action, state.selectedCell, values, stage, state, selectedCandidates)}</div>
+      <div class="button-row">
+        <button class="secondary" data-action="clear-selected-value">Clear Cell</button>
+        <button class="secondary" data-action="trigger-import">Load JSON File</button>
+      </div>
+    </section>
   `;
 }
 
