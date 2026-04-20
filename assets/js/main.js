@@ -26,6 +26,10 @@ import {
   setAnalysisOption,
   toggleSolveOptions,
   closeSolveOptions,
+  setLineHelperDigit,
+  clearLineHelperDigit,
+  toggleLineHelperRow,
+  toggleLineHelperColumn,
 } from "./state.js";
 
 const root = document.getElementById("app");
@@ -73,6 +77,18 @@ root.addEventListener("click", async (event) => {
     case "close-options":
       closeSolveOptions(state);
       break;
+    case "select-line-helper-digit":
+      setLineHelperDigit(state, digit);
+      break;
+    case "clear-line-helper-digit":
+      clearLineHelperDigit(state);
+      break;
+    case "toggle-line-helper-row":
+      toggleLineHelperRow(state, index);
+      break;
+    case "toggle-line-helper-column":
+      toggleLineHelperColumn(state, index);
+      break;
     case "select-cell":
       if (state.stage === "design-regions") {
         setSelectedCell(state, index);
@@ -119,7 +135,9 @@ root.addEventListener("click", async (event) => {
       }
       break;
     case "start-solving":
-      beginSolving(state);
+      if (beginSolving(state) && shouldScrollToTopOnSolve()) {
+        scrollToTopAfterRender();
+      }
       break;
     case "export-design":
       downloadJson(createFilename(state, "design"), createDesignExport(state));
@@ -163,6 +181,18 @@ root.addEventListener("change", (event) => {
 
   if (target.dataset.setting === "enable-claiming") {
     setAnalysisOption(state, "enableClaiming", target.checked);
+    render();
+    return;
+  }
+
+  if (target.dataset.setting === "hide-suggestions") {
+    setAnalysisOption(state, "hideSuggestions", target.checked);
+    render();
+    return;
+  }
+
+  if (target.dataset.setting === "allow-crossline") {
+    setAnalysisOption(state, "allowCrossLine", target.checked);
     render();
     return;
   }
@@ -265,4 +295,14 @@ function getFileInput() {
 function createFilename(state, type) {
   const variant = state.variant ?? "sudoku";
   return `${variant}-${state.size}x${state.size}-${type}.json`;
+}
+
+function shouldScrollToTopOnSolve() {
+  return window.matchMedia("(max-width: 640px)").matches;
+}
+
+function scrollToTopAfterRender() {
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 }
