@@ -25,6 +25,7 @@ export function createInitialState() {
     activeRegion: 0,
     ui: createDefaultUiState(),
     analysisOptions: createDefaultAnalysisOptions(),
+    lineEliminations: createDefaultLineEliminations(DEFAULT_BOARD_SIZE),
     history: [],
     historyCursor: -1,
     message: "Choose a board size, then start a classic or jigsaw puzzle, or load a JSON file.",
@@ -39,6 +40,8 @@ export function setPuzzleSize(state, size) {
   state.size = size;
   state.selectedCell = null;
   state.activeRegion = 0;
+  state.ui = createDefaultUiState();
+  state.lineEliminations = createDefaultLineEliminations(size);
   state.message = isClassicSizeSupported(size)
     ? `${size}x${size} selected. Classic and jigsaw are both available.`
     : `${size}x${size} selected. Use jigsaw for this size; classic remains available for 4x4, 6x6, 8x8, and 9x9.`;
@@ -70,6 +73,7 @@ export function startNewPuzzle(state, variant, size = state.size) {
     activeRegion: 0,
     ui: createDefaultUiState(),
     analysisOptions: createDefaultAnalysisOptions(),
+    lineEliminations: createDefaultLineEliminations(size),
     history: [],
     historyCursor: -1,
     message:
@@ -205,11 +209,16 @@ export function beginSolving(state) {
 
   state.entries = createEmptyValues(state.size);
   state.selectedCell = null;
-  state.ui.solveOptionsOpen = false;
+  state.ui = createDefaultUiState();
+  if (state.analysisOptions.allowCrossLine) {
+    state.ui.lineHelperDigit = 1;
+  }
   state.stage = "solve";
   state.history = [];
   state.historyCursor = -1;
-  state.message = "Solving mode ready. Select an empty cell to inspect its candidates.";
+  state.message = state.analysisOptions.hideSuggestions
+    ? "Solving mode ready. Select an empty cell and enter a digit from memory."
+    : "Solving mode ready. Select an empty cell to inspect its candidates.";
   return true;
 }
 
@@ -218,7 +227,11 @@ export function setEntryValue(state, index, value) {
     return false;
   }
 
-  if (value !== 0 && !canPlaceDigit(state.givens, state.entries, state.regions, index, value, state.size, state.analysisOptions)) {
+  if (
+    value !== 0 &&
+    !state.analysisOptions.hideSuggestions &&
+    !canPlaceDigit(state.givens, state.entries, state.regions, index, value, state.size, state.analysisOptions)
+  ) {
     state.message = `Digit ${value} is not allowed in that cell.`;
     return false;
   }
@@ -320,6 +333,7 @@ export function hydrateImportedState(state, payload) {
     activeRegion: 0,
     ui: createDefaultUiState(),
     analysisOptions: normalizeAnalysisOptions(payload.analysisOptions),
+    lineEliminations: createDefaultLineEliminations(size),
     history: payload.saveType === "progress" ? payload.history.map(cloneHistoryAction) : [],
     historyCursor: payload.saveType === "progress" ? payload.historyCursor : -1,
     message:
@@ -379,6 +393,11 @@ export function setAnalysisOption(state, option, value) {
   }
 
   state.analysisOptions[option] = Boolean(value);
+  if (option === "allowCrossLine") {
+    if (state.analysisOptions.allowCrossLine && state.ui.lineHelperDigit === null) {
+      state.ui.lineHelperDigit = 1;
+    }
+  }
   state.message = getAnalysisOptionMessage(option, state.analysisOptions[option]);
 }
 
@@ -388,6 +407,71 @@ export function toggleSolveOptions(state) {
 
 export function closeSolveOptions(state) {
   state.ui.solveOptionsOpen = false;
+}
+
+export function toggleLineHelper(state) {
+  if (state.stage !== "solve") {
+    return;
+  }
+
+  state.ui.lineHelperOpen = !state.ui.lineHelperOpen;
+  if (state.ui.lineHelperOpen && state.ui.lineHelperDigit === null) {
+    state.ui.lineHelperDigit = 1;
+  }
+
+  state.message = state.ui.lineHelperOpen
+    ? "Line helper ready. Choose a digit, then tap a row or column marker."
+    : "Line helper hidden.";
+}
+
+export function setLineHelperDigit(state, digit) {
+  if (state.stage !== "solve" || !Number.isInteger(digit) || digit < 1 || digit > state.size) {
+    return;
+  }
+
+  state.ui.lineHelperDigit = digit;
+  state.message = `Line helper set to digit ${digit}. Tap a row or column marker to toggle a cross-out.`;
+}
+
+export function clearLineHelperDigit(state) {
+  if (state.stage !== "solve" || state.ui.lineHelperDigit === null) {
+    return;
+  }
+
+  const digit = state.ui.lineHelperDigit;
+  state.lineEliminations.rows[digit].fill(false);
+  state.lineEliminations.columns[digit].fill(false);
+  state.message = `Cleared all line helper marks for digit ${digit}.`;
+}
+
+export function toggleLineHelperRow(state, rowIndex) {
+  if (state.stage !== "solve") {
+    return;
+  }
+
+  const digit = state.ui.lineHelperDigit;
+  if (digit === null || rowIndex < 0 || rowIndex >= state.size) {
+    state.message = "Choose a helper digit first.";
+    return;
+  }
+
+  state.lineEliminations.rows[digit][rowIndex] = !state.lineEliminations.rows[digit][rowIndex];
+  state.message = `${state.lineEliminations.rows[digit][rowIndex] ? "Marked" : "Cleared"} row ${rowIndex + 1} for digit ${digit}.`;
+}
+
+export function toggleLineHelperColumn(state, columnIndex) {
+  if (state.stage !== "solve") {
+    return;
+  }
+
+  const digit = state.ui.lineHelperDigit;
+  if (digit === null || columnIndex < 0 || columnIndex >= state.size) {
+    state.message = "Choose a helper digit first.";
+    return;
+  }
+
+  state.lineEliminations.columns[digit][columnIndex] = !state.lineEliminations.columns[digit][columnIndex];
+  state.message = `${state.lineEliminations.columns[digit][columnIndex] ? "Marked" : "Cleared"} column ${columnIndex + 1} for digit ${digit}.`;
 }
 
 function pushHistory(state, action) {
@@ -435,6 +519,8 @@ function resetToState(state, nextState) {
 
 function createDefaultAnalysisOptions() {
   return {
+    allowCrossLine: true,
+    hideSuggestions: true,
     enableClaiming: false,
     showAllCandidates: false,
   };
@@ -443,6 +529,15 @@ function createDefaultAnalysisOptions() {
 function createDefaultUiState() {
   return {
     solveOptionsOpen: false,
+    lineHelperOpen: false,
+    lineHelperDigit: null,
+  };
+}
+
+function createDefaultLineEliminations(size) {
+  return {
+    rows: Array.from({ length: size + 1 }, () => Array(size).fill(false)),
+    columns: Array.from({ length: size + 1 }, () => Array(size).fill(false)),
   };
 }
 
@@ -454,6 +549,18 @@ function normalizeAnalysisOptions(value) {
 }
 
 function getAnalysisOptionMessage(option, enabled) {
+  if (option === "allowCrossLine") {
+    return enabled
+      ? "CrossLine helper enabled. Row and column cross-out markers are available in solve mode."
+      : "CrossLine helper hidden. Existing helper marks remain saved in this session.";
+  }
+
+  if (option === "hideSuggestions") {
+    return enabled
+      ? "Memory mode enabled. Any digit can be entered; conflicts will be shown on the board."
+      : "Guided mode enabled. Illegal digits are blocked and suggestions are visible again.";
+  }
+
   if (option === "enableClaiming") {
     return enabled
       ? "Claiming rule enabled for candidate filtering."

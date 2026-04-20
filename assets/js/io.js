@@ -147,6 +147,14 @@ function validateAnalysisOptions(value) {
     throw new Error("analysisOptions must be an object when provided.");
   }
 
+  if (value.hideSuggestions !== undefined && typeof value.hideSuggestions !== "boolean") {
+    throw new Error("analysisOptions.hideSuggestions must be a boolean.");
+  }
+
+  if (value.allowCrossLine !== undefined && typeof value.allowCrossLine !== "boolean") {
+    throw new Error("analysisOptions.allowCrossLine must be a boolean.");
+  }
+
   if (value.enableClaiming !== undefined && typeof value.enableClaiming !== "boolean") {
     throw new Error("analysisOptions.enableClaiming must be a boolean.");
   }
